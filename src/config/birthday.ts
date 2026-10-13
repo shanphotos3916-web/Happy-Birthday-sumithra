@@ -139,7 +139,6 @@ export const birthday = {
     heading: "Make a wish, birthday girl.",
     eyebrow: "One more surprise",
     button: "Make a Wish ✨",
-    micButton: "Or blow into your microphone",
     afterWish: "May all your beautiful wishes come true.",
     candles: 5,
   },

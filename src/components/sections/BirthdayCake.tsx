@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
-import { ArrowDown, Mic, RotateCcw } from "lucide-react";
+import { ArrowDown, RotateCcw } from "lucide-react";
 import { birthday } from "@/config/birthday";
 import AmbientCanvas from "@/components/effects/AmbientCanvas";
 import { useMusic } from "@/components/effects/BackgroundMusic";
@@ -131,15 +131,7 @@ export default function BirthdayCake() {
   const inView = useInView(root, { once: true, amount: 0.35 });
   const [phase, setPhase] = useState<Phase>("waiting");
   const [lit, setLit] = useState(0);
-  const [micSupported, setMicSupported] = useState(false);
-  const [micState, setMicState] = useState<"idle" | "listening" | "denied">("idle");
-  const micCleanup = useRef<(() => void) | null>(null);
   const { sfx } = useMusic();
-
-  useEffect(() => {
-    setMicSupported(Boolean(navigator.mediaDevices?.getUserMedia) && window.isSecureContext);
-    return () => micCleanup.current?.();
-  }, []);
 
   useEffect(() => {
     if (inView && phase === "waiting") setPhase("lighting");
@@ -158,7 +150,6 @@ export default function BirthdayCake() {
   const blow = useCallback(() => {
     if (phaseRef.current !== "ready") return;
     phaseRef.current = "blown";
-    micCleanup.current?.();
     sfx("blow");
     setPhase("blown");
     window.setTimeout(() => {
@@ -167,42 +158,6 @@ export default function BirthdayCake() {
       sfx("celebrate");
     }, 450);
   }, [sfx]);
-
-  const listen = async () => {
-    if (micState === "listening") return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AC();
-      const src = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      src.connect(analyser);
-      const data = new Uint8Array(analyser.fftSize);
-      let loud = 0, raf = 0;
-      const stop = () => {
-        cancelAnimationFrame(raf);
-        stream.getTracks().forEach((t) => t.stop());
-        void ctx.close().catch(() => {});
-        micCleanup.current = null;
-        setMicState("idle");
-      };
-      micCleanup.current = stop;
-      setMicState("listening");
-      const tick = () => {
-        analyser.getByteTimeDomainData(data);
-        let sum = 0;
-        for (const v of data) sum += ((v - 128) / 128) ** 2;
-        const rms = Math.sqrt(sum / data.length);
-        loud = rms > 0.16 ? loud + 1 : Math.max(0, loud - 1);
-        if (loud > 10) { blow(); return; }
-        raf = requestAnimationFrame(tick);
-      };
-      tick();
-    } catch {
-      setMicState("denied");
-    }
-  };
 
   const relight = () => {
     setLit(0);
@@ -256,12 +211,6 @@ export default function BirthdayCake() {
             <button type="button" className="btn-luxe" onClick={blow} disabled={phase !== "ready"}>
               {phase === "ready" ? cake.button : "Lighting the candles…"}
             </button>
-            {micSupported && phase === "ready" && (
-              <button type="button" onClick={listen} className="flex min-h-11 max-w-full items-center justify-center gap-2 px-3 text-center text-sm text-ivory/75 underline-offset-4 hover:text-ivory hover:underline">
-                <Mic className="h-4 w-4" aria-hidden />
-                {micState === "listening" ? "Listening… blow gently" : micState === "denied" ? "Microphone unavailable — use the button" : cake.micButton}
-              </button>
-            )}
           </>
         ) : (
           <motion.div className="flex flex-col items-center gap-3" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.6, duration: 0.9 }}>

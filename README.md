@@ -64,5 +64,4 @@ The site opens on a lock screen. Set `PASSWORD` in `.env` locally and in the Ver
 ## Notes
 - Respects `prefers-reduced-motion`: ambient particles freeze, confetti/fireworks are skipped, content is all still shown.
 - Lower particle counts on phones / low-power devices; canvases pause when offscreen.
-- The microphone is only requested when she taps "Or blow into your microphone" (HTTPS only); the button always works.
 - Keyboard: Esc closes a photo or video, arrow keys move through them. The opening plays through; Begin continues into the site.
