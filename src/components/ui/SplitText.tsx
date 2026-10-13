@@ -21,7 +21,7 @@ export default function SplitText({ text, className, delay = 0, stagger = 0.04, 
   const words = text.split(" ");
   let i = 0;
   const trigger = inView
-    ? { initial: "hidden", whileInView: "show", viewport: { once: true, amount: 0.6 } }
+    ? { initial: "hidden", whileInView: "show", viewport: { once: true, amount: 0.2 } }
     : { initial: "hidden", animate: play ? "show" : "hidden" };
   return (
     <Tag className={className} aria-label={text} {...trigger}>
@@ -32,10 +32,10 @@ export default function SplitText({ text, className, delay = 0, stagger = 0.04, 
             return (
               <motion.span
                 key={`${wi}-${d}`}
-                className="inline-block will-change-transform"
+                className="inline-block"
                 variants={{
-                  hidden: { opacity: 0, y: "0.45em", rotateX: -70, filter: "blur(6px)" },
-                  show: { opacity: 1, y: 0, rotateX: 0, filter: "blur(0px)", transition: { duration: 0.9, delay: d, ease: ease.silk } },
+                  hidden: { opacity: 0, y: "0.4em" },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.7, delay: d, ease: ease.silk } },
                 }}
               >
                 {ch}

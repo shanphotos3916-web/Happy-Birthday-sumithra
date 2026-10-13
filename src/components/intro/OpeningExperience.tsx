@@ -19,7 +19,7 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [shake, setShake] = useState(0);
-  const { start, sfx } = useMusic();
+  const { start, arm, stop, sfx } = useMusic();
   const inputRef = useRef<HTMLInputElement>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
   const { opening, herName } = birthday;
@@ -42,6 +42,7 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
   const unlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    arm();
     setBusy(true);
     setError(false);
     try {
@@ -51,6 +52,7 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
         body: JSON.stringify({ password: value }),
       });
       if (!res.ok) {
+        stop();
         setError(true);
         setShake((n) => n + 1);
         inputRef.current?.focus();
@@ -61,6 +63,7 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
       sfx("chime");
       setPhase("reveal");
     } catch {
+      stop();
       setError(true);
       setShake((n) => n + 1);
     } finally {
@@ -76,7 +79,7 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
       aria-label={phase === "locked" ? "Password" : "Birthday surprise opening"}
       className="fixed inset-0 z-[90] flex min-h-[100svh] flex-col items-center justify-center overflow-x-hidden overflow-y-auto bg-plum px-6 py-[max(1.5rem,env(safe-area-inset-top))] text-ivory"
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.04, filter: "blur(12px)", transition: { duration: 1.3, ease: ease.cinematic } }}
+      exit={{ opacity: 0, scale: 1.02, transition: { duration: 0.8, ease: ease.cinematic } }}
     >
       <motion.div
         className="absolute inset-0"
@@ -95,9 +98,9 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
             key="lock"
             onSubmit={unlock}
             className="relative z-[1] flex w-full max-w-md flex-col items-center text-center"
-            initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -24, filter: "blur(10px)", transition: { duration: 0.7, ease: ease.cinematic } }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16, transition: { duration: 0.45, ease: ease.cinematic } }}
             transition={{ duration: 1.2, delay: 0.4, ease: ease.silk }}
           >
             <motion.span
@@ -127,7 +130,7 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
                 spellCheck={false}
                 enterKeyHint="go"
                 onChange={(ev) => { setValue(ev.target.value); setError(false); }}
-                className="w-full border-b border-gold/50 bg-transparent py-3 text-center font-display text-lg tracking-[0.12em] text-ivory outline-none placeholder:text-ivory/25 focus-visible:border-gold sm:text-2xl sm:tracking-[0.2em]"
+                className="w-full border-b border-gold/50 bg-transparent py-3 text-center font-display text-base tracking-[0.12em] text-ivory outline-none placeholder:text-ivory/25 focus-visible:border-gold sm:text-2xl sm:tracking-[0.2em]"
                 placeholder="••••••"
                 aria-invalid={error}
                 aria-describedby={error ? "password-error" : undefined}
@@ -165,17 +168,20 @@ export default function OpeningExperience({ onDone }: { onDone: () => void }) {
               delay={0.2}
             />
             <motion.p
-              className="relative mt-6 font-script text-[clamp(2.6rem,11vw,6rem)] leading-none text-gold-gradient"
-              initial={{ opacity: 0, scale: 0.92, filter: "blur(14px)", letterSpacing: "0.2em" }}
-              animate={{ opacity: 1, scale: 1, filter: "blur(0px)", letterSpacing: "0.01em" }}
-              transition={{ delay: 1.5, duration: 2, ease: ease.silk }}
+              className="relative mt-6 inline-block font-script text-[clamp(2.6rem,11vw,6rem)] leading-none text-gold-gradient"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.5, duration: 1.4, ease: ease.silk }}
             >
               {herName}
             </motion.p>
             <motion.button
               ref={continueRef}
               type="button"
-              onClick={onDone}
+              onClick={() => {
+                if (birthday.music.startOnOpen) start();
+                onDone();
+              }}
               className="btn-ghost relative mt-12 text-ivory/80"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

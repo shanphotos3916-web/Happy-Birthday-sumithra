@@ -34,9 +34,11 @@ export default function BirthdayHero({ started }: { started: boolean }) {
 
   useEffect(() => {
     const el = root.current;
-    if (!el || prefersReducedMotion()) return;
+    if (!started || !el || prefersReducedMotion()) return;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
     const { gsap } = getGsap();
     const ctx = gsap.context(() => {
+      if (coarse) return;
       gsap.utils.toArray<HTMLElement>("[data-speed]").forEach((layer) => {
         const speed = Number(layer.dataset.speed);
         gsap.to(layer, {
@@ -54,12 +56,12 @@ export default function BirthdayHero({ started }: { started: boolean }) {
       const y = e.clientY / window.innerHeight - 0.5;
       gsap.to(tilt.current, { rotateY: x * 8, rotateX: -y * 6, duration: 1.2, ease: "power3.out" });
     };
-    if (fine) window.addEventListener("pointermove", onMove);
+    if (fine && !coarse) window.addEventListener("pointermove", onMove);
     return () => {
       ctx.revert();
       window.removeEventListener("pointermove", onMove);
     };
-  }, []);
+  }, [started]);
 
   const show = started ? "show" : "hidden";
 
@@ -68,7 +70,7 @@ export default function BirthdayHero({ started }: { started: boolean }) {
       ref={root}
       id="hero"
       aria-labelledby="hero-title"
-      className="relative flex min-h-[100svh] items-center overflow-x-clip bg-gradient-to-b from-ivory via-[#fbeee9] to-blush/70 px-0 pb-28 pt-16 sm:pt-24"
+      className="relative flex min-h-screen-safe items-center overflow-x-clip bg-gradient-to-b from-ivory via-[#fbeee9] to-blush/70 px-0 pb-28 pt-16 sm:pt-24"
     >
       {/* depth layers */}
       <div data-speed="-0.6" className="pointer-events-none absolute -left-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-lavender/40 blur-3xl" aria-hidden />
@@ -87,7 +89,7 @@ export default function BirthdayHero({ started }: { started: boolean }) {
           >
             {dateLabel ?? "A little universe made just for you"}
           </motion.p>
-          <h1 id="hero-title" className="font-display leading-[0.95] text-burgundy [perspective:800px]">
+          <h1 id="hero-title" className="font-display leading-[0.95] text-burgundy">
             <SplitText text={hero.headline} play={started} delay={0.35} className="block text-[clamp(2.6rem,8vw,5.6rem)]" />
             <SplitText
               text={herName}
@@ -101,23 +103,23 @@ export default function BirthdayHero({ started }: { started: boolean }) {
             className="mx-auto mt-8 max-w-md text-[1.05rem] leading-relaxed text-wine/80 lg:mx-0"
             initial="hidden"
             animate={show}
-            variants={{ hidden: { opacity: 0, y: 20, filter: "blur(6px)" }, show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 1.2, delay: 1.8, ease: ease.silk } } }}
+            variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.9, delay: 1.4, ease: ease.silk } } }}
           >
             {hero.subtitle}
           </motion.p>
         </div>
 
-        <div className="relative mx-auto w-[min(82vw,420px)] [perspective:1200px]">
+        <div className="relative mx-auto w-[min(82vw,420px)]">
           <div data-speed="-0.25" className="absolute -inset-10 rounded-full opacity-90 blur-2xl" style={{ background: "radial-gradient(circle, rgba(236,200,140,0.55), rgba(244,211,214,0.45) 45%, transparent 70%)" }} aria-hidden />
           <motion.div
             initial="hidden"
             animate={show}
             variants={{
-              hidden: { opacity: 0, rotateY: -25, rotateX: 12, y: 60, scale: 0.9 },
-              show: { opacity: 1, rotateY: 0, rotateX: 0, y: 0, scale: 1, transition: { duration: 1.8, delay: 0.7, ease: ease.silk } },
+              hidden: { opacity: 0, y: 36, scale: 0.96 },
+              show: { opacity: 1, y: 0, scale: 1, transition: { duration: 1.1, delay: 0.5, ease: ease.silk } },
             }}
           >
-            <div ref={tilt} className="[transform-style:preserve-3d]">
+            <div ref={tilt}>
               <figure className="relative rotate-[1.5deg] bg-white p-3 pb-16 shadow-[0_40px_80px_-30px_rgba(91,26,46,0.55)] sm:p-4 sm:pb-20">
                 <PhotoFrame photo={hero.photo} priority sizes="(max-width: 768px) 82vw, 420px" />
                 <motion.figcaption

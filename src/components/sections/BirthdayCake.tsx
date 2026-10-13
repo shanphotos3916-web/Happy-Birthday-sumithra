@@ -128,7 +128,7 @@ export default function BirthdayCake() {
   const { cake, herName } = birthday;
   const root = useRef<HTMLElement>(null);
   const cakeRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(root, { once: true, amount: 0.35 });
+  const inView = useInView(root, { once: true, amount: 0.15 });
   const [phase, setPhase] = useState<Phase>("waiting");
   const [lit, setLit] = useState(0);
   const { sfx } = useMusic();
@@ -169,7 +169,7 @@ export default function BirthdayCake() {
       ref={root}
       id="cake"
       aria-labelledby="cake-title"
-      className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-x-clip px-5 py-20 text-ivory sm:px-6 sm:py-24"
+      className="relative flex min-h-screen-safe flex-col items-center justify-center overflow-x-clip px-5 py-20 text-ivory sm:px-6 sm:py-24"
       style={{ background: "linear-gradient(180deg, #1b0e22 0%, #3a1530 45%, #8c4a5c 85%, #c58690 100%)" }}
     >
       <AmbientCanvas petals={8} sparkles={70} />
@@ -185,9 +185,9 @@ export default function BirthdayCake() {
             key={phase === "blown" ? "after" : "before"}
             id="cake-title"
             className="mx-auto mt-5 max-w-xl font-display text-[clamp(2rem,6vw,3.8rem)] italic leading-[1.1]"
-            initial={{ opacity: 0, y: 16, filter: "blur(8px)" }}
-            animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-            exit={{ opacity: 0, y: -12, filter: "blur(8px)" }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 1, ease: ease.silk, delay: phase === "blown" ? 0.8 : 0.3 }}
           >
             {phase === "blown" ? cake.afterWish : cake.heading}

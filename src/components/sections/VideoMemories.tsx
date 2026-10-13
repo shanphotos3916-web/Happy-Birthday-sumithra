@@ -4,8 +4,50 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Film, Play, X } from "lucide-react";
 import { birthday, type Video } from "@/config/birthday";
-import { ease, fadeUp } from "@/lib/animation";
-import { cn } from "@/lib/utils";
+import { ease, fadeUp, inView } from "@/lib/animation";
+import { cn, lockPageScroll, unlockPageScroll } from "@/lib/utils";
+
+function Clip({ src, poster, onError }: { src: string; poster?: string; onError: () => void }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [needTap, setNeedTap] = useState(false);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const attempt = v.play();
+    if (!attempt) return;
+    void attempt.then(() => setNeedTap(false)).catch(() => setNeedTap(true));
+  }, [src]);
+
+  return (
+    <>
+      <video
+        ref={ref}
+        src={src}
+        poster={poster || undefined}
+        controls
+        autoPlay
+        playsInline
+        preload="metadata"
+        onError={onError}
+        onPlay={() => setNeedTap(false)}
+        className="h-full w-full bg-black object-contain"
+      />
+      {needTap && (
+        <button
+          type="button"
+          aria-label="Play video"
+          className="absolute inset-0 flex items-center justify-center"
+          onClick={() => { void ref.current?.play().then(() => setNeedTap(false)).catch(() => setNeedTap(true)); }}
+        >
+          <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/50 bg-black/40">
+            <Play className="ml-1 h-7 w-7 fill-white text-white" aria-hidden />
+          </span>
+        </button>
+      )}
+    </>
+  );
+}
 
 function VideoModal({ items, index, onClose, onChange }: { items: readonly Video[]; index: number | null; onClose: () => void; onChange: (i: number) => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -17,10 +59,14 @@ function VideoModal({ items, index, onClose, onChange }: { items: readonly Video
 
   useEffect(() => {
     if (!open) return;
+    lockPageScroll();
+    return () => unlockPageScroll();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") onChange((index + 1) % items.length);
@@ -29,7 +75,6 @@ function VideoModal({ items, index, onClose, onChange }: { items: readonly Video
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
       prev?.focus();
     };
   }, [open, index, items.length, onClose, onChange]);
@@ -41,7 +86,7 @@ function VideoModal({ items, index, onClose, onChange }: { items: readonly Video
           role="dialog"
           aria-modal="true"
           aria-label="Video"
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/94 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/95 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -57,16 +102,7 @@ function VideoModal({ items, index, onClose, onChange }: { items: readonly Video
           >
             <div className="relative aspect-[9/16] max-h-[78svh] w-full overflow-hidden bg-black shadow-2xl">
               {video.src && !error ? (
-                <video
-                  key={video.src}
-                  src={video.src}
-                  poster={video.poster || undefined}
-                  controls
-                  autoPlay
-                  playsInline
-                  onError={() => setError(true)}
-                  className="h-full w-full bg-black object-contain"
-                />
+                <Clip src={video.src} poster={video.poster} onError={() => setError(true)} />
               ) : (
                 <div className="flex h-full items-center justify-center text-ivory/70">
                   <Film className="h-8 w-8" aria-hidden />
@@ -97,20 +133,20 @@ export default function VideoMemories() {
   const close = useCallback(() => setModal(null), []);
 
   return (
-    <section id="videos" aria-labelledby="videos-title" className="relative overflow-hidden bg-[#140c12] py-16 text-ivory sm:py-24">
+    <section id="videos" aria-labelledby="videos-title" className="relative overflow-x-clip bg-[#140c12] py-16 text-ivory sm:py-24">
       <header className="mx-auto mb-10 max-w-3xl px-6 text-center sm:mb-14">
         <motion.h2
           id="videos-title"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true }}
+          viewport={inView}
           variants={fadeUp}
           className="font-display text-[clamp(2.2rem,6vw,4.2rem)] leading-[1.05]"
         >
           {birthday.videos.title} <span className="block italic text-blush">{birthday.videos.titleAccent}</span>
         </motion.h2>
       </header>
-      <ul className="no-scrollbar mx-auto flex max-w-6xl snap-x gap-2 overflow-x-auto px-3 md:grid md:grid-cols-5 md:gap-3 md:overflow-visible md:px-6">
+      <ul className="no-scrollbar mx-auto flex max-w-6xl snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-3 md:grid md:grid-cols-5 md:gap-3 md:overflow-visible md:px-6">
         {items.map((clip, i) => (
           <li key={clip.src} className="w-[68vw] max-w-[240px] shrink-0 snap-center md:w-auto md:max-w-none">
             <button

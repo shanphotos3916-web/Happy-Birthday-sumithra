@@ -9,6 +9,9 @@ type MusicApi = {
   playing: boolean;
   /** Called from a user gesture. Respects a previous "off" choice unless forced. */
   start: (force?: boolean) => void;
+  /** Call synchronously inside a tap so iOS will allow playback after an await. */
+  arm: () => void;
+  stop: () => void;
   toggle: () => void;
   sfx: (name: Sfx) => void;
 };
@@ -82,6 +85,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileFailed = useRef(false);
   const fadeRaf = useRef(0);
+  const gesture = useRef(0);
+  const pendingPlay = useRef<Promise<void> | null>(null);
 
   const getCtx = useCallback(() => {
     if (!ctxRef.current) {
@@ -135,35 +140,57 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, [getCtx]);
 
-  const play = useCallback(() => {
+  const ensureAudio = useCallback(() => {
     const src = birthday.music.src;
-    if (src && !fileFailed.current) {
-      if (!audioRef.current) {
-        const el = new Audio(src);
-        el.loop = true;
-        el.preload = "none";
-        el.volume = 0;
-        el.addEventListener("error", () => {
-          fileFailed.current = true;
-          audioRef.current = null;
-          if (playSynth()) setPlaying(true);
-        });
-        audioRef.current = el;
-      }
-      const el = audioRef.current;
-      el.play().then(() => fadeAudio(birthday.music.volume)).catch(() => {
-        // Play was blocked, or the file could not start. If the file itself
-        // failed, the error listener has already switched to the melody.
-        if (fileFailed.current) return;
-        setPlaying(false);
+    if (!src || fileFailed.current) return null;
+    if (!audioRef.current) {
+      const el = new Audio(src);
+      el.loop = true;
+      el.preload = "auto";
+      el.volume = 0;
+      el.setAttribute("playsinline", "true");
+      el.addEventListener("error", () => {
+        fileFailed.current = true;
+        audioRef.current = null;
       });
-      setPlaying(true);
-      return;
+      audioRef.current = el;
     }
-    setPlaying(playSynth());
-  }, [fadeAudio, playSynth]);
+    return audioRef.current;
+  }, []);
+
+  const arm = useCallback(() => {
+    const id = gesture.current;
+    getCtx();
+    const el = ensureAudio();
+    if (!el) return;
+    pendingPlay.current = el.play().then(() => {
+      if (gesture.current !== id) el.pause();
+    }).catch(() => {});
+  }, [ensureAudio, getCtx]);
+
+  const play = useCallback(() => {
+    const el = ensureAudio();
+    const raise = () => {
+      setPlaying(true);
+      fadeAudio(birthday.music.volume);
+    };
+    const begin = () => {
+      if (el && !el.paused) { raise(); return; }
+      if (el) {
+        void el.play().then(raise).catch(() => {
+          if (!el.paused) { raise(); return; }
+          if (!fileFailed.current) setPlaying(playSynth());
+        });
+        return;
+      }
+      setPlaying(playSynth());
+    };
+    if (pendingPlay.current) void pendingPlay.current.finally(begin);
+    else begin();
+  }, [ensureAudio, fadeAudio, playSynth]);
 
   const pause = useCallback(() => {
+    gesture.current += 1;
     setPlaying(false);
     if (audioRef.current) fadeAudio(0, () => audioRef.current?.pause());
     const ctx = ctxRef.current, master = masterRef.current;
@@ -221,7 +248,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     void ctxRef.current?.close().catch(() => {});
   }, []);
 
-  const api = useMemo(() => ({ playing, start, toggle, sfx }), [playing, start, toggle, sfx]);
+  const api = useMemo(() => ({ playing, start, arm, stop: pause, toggle, sfx }), [playing, start, arm, pause, toggle, sfx]);
   return <MusicContext.Provider value={api}>{children}</MusicContext.Provider>;
 }
 

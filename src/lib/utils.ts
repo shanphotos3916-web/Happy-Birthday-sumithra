@@ -23,6 +23,38 @@ export function isSmallScreen(): boolean {
   return typeof window !== "undefined" && window.innerWidth < 768;
 }
 
+let scrollLocks = 0;
+let savedScrollY = 0;
+
+/** Lock the page without overflow:hidden, which breaks scrolling on iOS. */
+export function lockPageScroll(): void {
+  if (typeof document === "undefined") return;
+  if (scrollLocks === 0) {
+    savedScrollY = window.scrollY;
+    const body = document.body;
+    body.style.position = "fixed";
+    body.style.top = `-${savedScrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+  }
+  scrollLocks += 1;
+}
+
+export function unlockPageScroll(): void {
+  if (typeof document === "undefined" || scrollLocks === 0) return;
+  scrollLocks -= 1;
+  if (scrollLocks > 0) return;
+  const body = document.body;
+  body.style.position = "";
+  body.style.top = "";
+  body.style.left = "";
+  body.style.right = "";
+  body.style.width = "";
+  window.scrollTo(0, savedScrollY);
+  window.requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
+}
+
 export function scrollToId(id: string): void {
   const el = document.getElementById(id);
   if (!el) return;

@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { birthday } from "@/config/birthday";
 import AmbientCanvas from "@/components/effects/AmbientCanvas";
-import { ease, fadeUp, getGsap, prefersReducedMotion, stagger } from "@/lib/animation";
+import { ease, fadeUp, getGsap, inView, prefersReducedMotion, stagger } from "@/lib/animation";
 import { cn } from "@/lib/utils";
 
 type Word = { text: string; glow: boolean };
@@ -32,7 +32,7 @@ function Note({ text, index }: { text: string; index: number }) {
       className={cn("my-14 flex sm:my-20", right ? "justify-end" : "justify-start")}
       initial={{ opacity: 0, y: 28, rotate: 0 }}
       whileInView={{ opacity: 1, y: 0, rotate: NOTE_TILTS[index % NOTE_TILTS.length] }}
-      viewport={{ once: true, amount: 0.6 }}
+      viewport={inView}
       transition={{ duration: 1.2, ease: ease.silk }}
     >
       <div className="paper relative w-[min(70vw,19rem)] px-5 pb-6 pt-8 text-center shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)] sm:px-6">
@@ -43,51 +43,62 @@ function Note({ text, index }: { text: string; index: number }) {
   );
 }
 
-export default function MessageSection() {
+export default function MessageSection({ started }: { started: boolean }) {
   const { message, yourName } = birthday;
   const root = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const el = root.current;
-    if (!el || prefersReducedMotion()) return;
+    if (!started || !el || prefersReducedMotion()) return;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
     const { gsap } = getGsap();
     const ctx = gsap.context(() => {
       gsap.utils.toArray<HTMLElement>("[data-lit]").forEach((para) => {
-        gsap.fromTo(
-          para.querySelectorAll("[data-word]"),
-          { opacity: 0.14, filter: "blur(2px)" },
-          {
+        const words = para.querySelectorAll("[data-word]");
+        if (coarse) {
+          gsap.fromTo(words, { opacity: 0.35 }, {
             opacity: 1,
-            filter: "blur(0px)",
-            stagger: 0.1,
-            ease: "none",
-            scrollTrigger: { trigger: para, start: "top 82%", end: "bottom 45%", scrub: 0.5 },
-          },
-        );
+            duration: 0.7,
+            stagger: 0.02,
+            ease: "power1.out",
+            scrollTrigger: { trigger: para, start: "top 90%", once: true },
+          });
+          return;
+        }
+        gsap.fromTo(words, { opacity: 0.2 }, {
+          opacity: 1,
+          stagger: 0.08,
+          ease: "none",
+          scrollTrigger: { trigger: para, start: "top 82%", end: "bottom 45%", scrub: 0.4 },
+        });
       });
 
-      gsap.to("[data-glow]", {
-        yPercent: 260,
-        ease: "none",
-        scrollTrigger: { trigger: el, start: "top top", end: "bottom bottom", scrub: true },
-      });
+      if (!coarse) {
+        gsap.to("[data-glow]", {
+          yPercent: 260,
+          ease: "none",
+          scrollTrigger: { trigger: el, start: "top top", end: "bottom bottom", scrub: true },
+        });
+      }
 
-      gsap.fromTo("[data-signature]", { clipPath: "inset(0 100% 0 0)" }, {
-        clipPath: "inset(0 0% 0 0)",
-        duration: 2.4,
-        ease: "power2.inOut",
-        scrollTrigger: { trigger: "[data-signature]", start: "top 85%", once: true },
+      gsap.from("[data-signature]", {
+        autoAlpha: 0,
+        y: 16,
+        duration: 1.1,
+        ease: "power2.out",
+        immediateRender: false,
+        scrollTrigger: { trigger: "[data-signature]", start: "top 92%", once: true },
       });
     }, el);
     return () => ctx.revert();
-  }, []);
+  }, [started]);
 
   return (
     <section
       ref={root}
       id="message"
       aria-labelledby="message-title"
-      className="relative overflow-hidden bg-[#1b0e22] px-6 py-28 text-ivory sm:py-36"
+      className="relative overflow-x-clip bg-[#1b0e22] px-6 py-28 text-ivory sm:py-36"
     >
       <AmbientCanvas petals={5} sparkles={55} />
       <div
@@ -98,7 +109,7 @@ export default function MessageSection() {
       />
 
       <div className="relative mx-auto max-w-4xl">
-        <motion.header className="text-center" initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.6 }} variants={stagger(0, 0.15)}>
+        <motion.header className="text-center" initial="hidden" whileInView="show" viewport={inView} variants={stagger(0, 0.12)}>
           <motion.p variants={fadeUp} className="eyebrow text-gold">{message.eyebrow}</motion.p>
           <motion.h2 id="message-title" variants={fadeUp} className="mt-6 font-display text-[clamp(2.2rem,6vw,4.4rem)] italic leading-[1.05] text-blush">
             {message.title}

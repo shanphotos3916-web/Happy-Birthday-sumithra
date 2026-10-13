@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { birthday } from "@/config/birthday";
 import PhotoFrame from "@/components/ui/PhotoFrame";
 import Lightbox from "@/components/ui/Lightbox";
-import { ease, fadeUp } from "@/lib/animation";
+import { ease, fadeUp, inView } from "@/lib/animation";
 import { cn } from "@/lib/utils";
 
 /** Quiet mosaic. The first frame opens the wall; the landscape frame spans a row. */
@@ -34,13 +34,13 @@ export default function MemoryGallery() {
   const close = useCallback(() => setActive(null), []);
 
   return (
-    <section id="gallery" aria-labelledby="gallery-title" className="relative overflow-hidden bg-[#f3ebe4] py-16 sm:py-24">
+    <section id="gallery" aria-labelledby="gallery-title" className="relative overflow-x-clip bg-[#f3ebe4] py-16 sm:py-24">
       <header className="mx-auto mb-10 max-w-3xl px-6 text-center sm:mb-14">
         <motion.h2
           id="gallery-title"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true }}
+          viewport={inView}
           variants={fadeUp}
           className="font-display text-[clamp(2.4rem,7vw,4.4rem)] italic leading-none text-burgundy"
         >
@@ -54,7 +54,7 @@ export default function MemoryGallery() {
             className={cn(SPAN[i] ?? "")}
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={inView}
             transition={{ duration: 0.8, ease: ease.silk, delay: (i % 4) * 0.04 }}
           >
             <button

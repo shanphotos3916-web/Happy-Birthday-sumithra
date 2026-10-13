@@ -52,18 +52,12 @@ export default function AmbientCanvas({
     const nBokeh = Math.round(bokeh * factor);
 
     let w = 0, h = 0, raf = 0, visible = true, start = performance.now();
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-
-    const resize = () => {
-      const r = canvas.getBoundingClientRect();
-      w = r.width; h = r.height;
-      canvas.width = Math.max(1, Math.floor(w * dpr));
-      canvas.height = Math.max(1, Math.floor(h * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const rand = (a: number, b: number) => a + Math.random() * (b - a);
+    let P: Petal[] = [];
+    let S: Spark[] = [];
+    let B: Bokeh[] = [];
+
     const makePetal = (initial: boolean): Petal => {
       const z = rand(0.35, 1);
       return {
@@ -80,15 +74,32 @@ export default function AmbientCanvas({
         color: petalColors[Math.floor(Math.random() * petalColors.length)],
       };
     };
-    const P: Petal[] = Array.from({ length: nPetals }, () => makePetal(true));
-    const S: Spark[] = Array.from({ length: nSparks }, () => ({
-      x: Math.random() * w, y: Math.random() * h, r: rand(0.5, 1.8),
-      phase: rand(0, Math.PI * 2), speed: rand(0.4, 1.4), drift: rand(-0.08, -0.02),
-    }));
-    const B: Bokeh[] = Array.from({ length: nBokeh }, () => ({
-      x: Math.random() * w, y: Math.random() * h, r: rand(14, 60), vy: rand(-0.15, -0.04),
-      hue: Math.random() > 0.4 ? [236, 200, 130] : [240, 170, 180], a: rand(0.05, 0.16),
-    }));
+    const seed = () => {
+      P = Array.from({ length: nPetals }, () => makePetal(true));
+      S = Array.from({ length: nSparks }, () => ({
+        x: Math.random() * w, y: Math.random() * h, r: rand(0.5, 1.8),
+        phase: rand(0, Math.PI * 2), speed: rand(0.4, 1.4), drift: rand(-0.08, -0.02),
+      }));
+      B = Array.from({ length: nBokeh }, () => ({
+        x: Math.random() * w, y: Math.random() * h, r: rand(14, 60), vy: rand(-0.15, -0.04),
+        hue: Math.random() > 0.4 ? [236, 200, 130] : [240, 170, 180], a: rand(0.05, 0.16),
+      }));
+    };
+
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const nw = r.width;
+      const nh = r.height;
+      if (nw < 2 || nh < 2) return;
+      const grew = w < 2 || h < 2 || Math.abs(nw - w) / w > 0.25 || Math.abs(nh - h) / h > 0.25;
+      w = nw;
+      h = nh;
+      canvas.width = Math.max(1, Math.floor(w * dpr));
+      canvas.height = Math.max(1, Math.floor(h * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (grew) seed();
+    };
+    resize();
 
     const drawPetal = (p: Petal, alpha: number) => {
       ctx.save();
@@ -172,7 +183,12 @@ export default function AmbientCanvas({
       if (!reduce && visible && !was) raf = requestAnimationFrame(loop);
     };
     document.addEventListener("visibilitychange", onVis);
-    const ro = new ResizeObserver(() => { resize(); if (reduce) frame(performance.now()); });
+    const ro = new ResizeObserver(() => {
+      const before = w;
+      resize();
+      if (reduce) frame(performance.now());
+      else if (visible && before < 2 && w > 2) raf = requestAnimationFrame(loop);
+    });
     ro.observe(canvas);
 
     return () => {

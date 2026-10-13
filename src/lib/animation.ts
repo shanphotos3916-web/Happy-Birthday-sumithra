@@ -13,10 +13,14 @@ let registered = false;
 export function getGsap() {
   if (!registered && typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger);
+    ScrollTrigger.config({ ignoreMobileResize: true });
     registered = true;
   }
   return { gsap, ScrollTrigger };
 }
+
+/** Loose enough that a phone viewport can actually trigger the animation. */
+export const inView = { once: true, amount: 0.2 } as const;
 
 /** Easing curves shared across Framer Motion. */
 export const ease = {
@@ -31,12 +35,11 @@ export const springs = {
 };
 
 export const fadeUp = {
-  hidden: { opacity: 0, y: 28, filter: "blur(8px)" },
+  hidden: { opacity: 0, y: 24 },
   show: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 1.1, ease: ease.silk },
+    transition: { duration: 0.9, ease: ease.silk },
   },
 };
 

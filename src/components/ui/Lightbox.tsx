@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { Photo } from "@/config/birthday";
 import PhotoFrame from "./PhotoFrame";
 import { ease } from "@/lib/animation";
+import { lockPageScroll, unlockPageScroll } from "@/lib/utils";
 
 const RATIO: Record<Photo["orientation"], number> = { portrait: 0.8, landscape: 4 / 3, square: 1 };
 
@@ -25,8 +26,6 @@ export default function Lightbox({ photos, index, onClose, onChange }: Props) {
     if (!open) return;
     const prevFocus = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") onChange((index + 1) % photos.length);
@@ -35,10 +34,15 @@ export default function Lightbox({ photos, index, onClose, onChange }: Props) {
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
       prevFocus?.focus();
     };
   }, [open, index, photos.length, onClose, onChange]);
+
+  useEffect(() => {
+    if (!open) return;
+    lockPageScroll();
+    return () => unlockPageScroll();
+  }, [open]);
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
     if (index === null) return;
@@ -53,7 +57,7 @@ export default function Lightbox({ photos, index, onClose, onChange }: Props) {
           role="dialog"
           aria-modal="true"
           aria-label={`Photo ${index + 1} of ${photos.length}`}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-plum/90 p-4 backdrop-blur-md sm:p-10"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-plum/95 p-4 sm:p-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -62,8 +66,8 @@ export default function Lightbox({ photos, index, onClose, onChange }: Props) {
         >
           <motion.figure
             key={index}
-            initial={{ opacity: 0, scale: 0.92, y: 20, filter: "blur(8px)" }}
-            animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
             className="relative w-full max-w-3xl"
             onClick={(e) => e.stopPropagation()}
@@ -88,12 +92,12 @@ export default function Lightbox({ photos, index, onClose, onChange }: Props) {
           </button>
           <button type="button" aria-label="Previous photo"
             onClick={(e) => { e.stopPropagation(); onChange((index - 1 + photos.length) % photos.length); }}
-            className="glass absolute left-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-ivory sm:flex">
+            className="glass absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-ivory">
             <ChevronLeft className="h-5 w-5" aria-hidden />
           </button>
           <button type="button" aria-label="Next photo"
             onClick={(e) => { e.stopPropagation(); onChange((index + 1) % photos.length); }}
-            className="glass absolute right-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-ivory sm:flex">
+            className="glass absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-ivory">
             <ChevronRight className="h-5 w-5" aria-hidden />
           </button>
         </motion.div>
