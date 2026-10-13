@@ -81,9 +81,9 @@ export const birthday = {
    */
   message: {
     eyebrow: "For my Chinnuu Ma",
-    title: "Happy 24th Birthday",
+    title: "Happy 23rd Birthday",
     paragraphs: [
-      "Happy birthday to the most beautiful person in my life. Today is extra special because it's your *24th birthday,* and I feel so lucky to be the person celebrating this beautiful day with you.",
+      "Happy birthday to the most beautiful person in my life. Today is extra special because it's your *23rd birthday,* and I feel so lucky to be the person celebrating this beautiful day with you.",
       "This is the *second birthday* we're celebrating together after committing to each other, and honestly, I couldn't be happier to have you in my life.",
       "Baby, ever since you came into my life, every single day has become more beautiful and meaningful. I have enjoyed each and every day being with you, whether it's our conversations, our silly fights, our laughter, our little moments, or even the times when we do nothing but stay connected. Every moment with you has become a memory that I want to keep close to my heart *forever.*",
       "Bbz, you have no idea how happy you make me. Sometimes, I just think about us and smile for no reason. Having you beside me, sharing my happiness, listening to me, and being a part of my everyday life is one of the best feelings I've ever experienced. I don't need every day to be perfect. I just want you to be there with me through all the *ups and downs.*",
